@@ -1127,8 +1127,13 @@ const geo = {
   raceView2: false,  // Race View 2 (stacked top/bottom big compasses) replaces the map
   lineRC: null, linePin: null,   // start-line ends pinged by GPS ("ping the line")
   depthFt: null, depthPos: null, depthFetchAt: 0, depthBusy: false,   // approx NOAA bathymetry (Race View 2)
+  laylineOn: false,   // latch so the layline alert beeps once on entry, not every frame
 };
 const ROUND_NM = 0.027;   // ~50 m: within this of the target mark => advance to next leg
+const NM_YD = 2025.37;    // yards per nautical mile (matches the Race View distance readout)
+const BOW_YD = 50;        // bow-sight: show a mark if the bow would pass within 50 yd of it
+const BOW_CONE = 35;      // bow-sight: ...and the mark is within 35 degrees of dead-ahead
+const LAY_TOL = 6;        // layline alarm: half-width (deg) of the "on the layline" band
 
 const $ = (id)=>document.getElementById(id);
 
@@ -1483,10 +1488,12 @@ function drawBoatOverlay(){ if(geo.raceView) renderRaceView(); else if(geo.raceV
    Replaces the map area. Heading-up: the boat is fixed pointing up and the wind/mark
    arrows rotate to where those things are RELATIVE to the boat's current heading. */
 function toggleRaceView(){
+  ensureAudio();                                   // unlock audio for the layline alert
   setRaceView(!geo.raceView);
   track("race_view", { detail: geo.raceView ? "on" : "off" });
 }
 function toggleRaceView2(){
+  ensureAudio();                                   // unlock audio for the layline alert
   setRaceView2(!geo.raceView2);
   track("race_view2", { detail: geo.raceView2 ? "on" : "off" });
 }
@@ -1582,7 +1589,34 @@ function raceViewData(){
   }
   const steer = (hasHdg && mrkBrg != null) ? angleDiff(effHdg, mrkBrg) : null;   // + = mark to starboard
   const onCourse = steer != null && Math.abs(steer) <= 5;
-  return { norm, hasGps, hasHdg, hdg, effHdg, sog, windFrom, markLbl, mrkBrg, distnm, steer, onCourse };
+
+  // bow-sight: which mark is the boat actually pointing at? Scan every known mark; keep the
+  // nearest one that is ahead (within the forward cone) whose position the bow would pass
+  // within BOW_YD yards of. cross-track = dist*sin(offset), so the accuracy sharpens with range.
+  let bowMark = null;
+  if(hasGps && hasHdg && ACTIVE_MARKS){
+    let best = Infinity;
+    for(const m of Object.keys(ACTIVE_MARKS)){
+      const dnm = distNm(geo.lastPos, ACTIVE_MARKS[m]);
+      if(!(dnm > 0)) continue;
+      const off = angleDiff(effHdg, norm(bearingMag(geo.lastPos, ACTIVE_MARKS[m])));
+      if(Math.abs(off) > BOW_CONE) continue;                        // must be ahead of the bow
+      const crossYd = Math.abs(dnm * Math.sin(off*Math.PI/180)) * NM_YD;
+      if(crossYd > BOW_YD) continue;                                // must pass within 50 yd
+      if(dnm < best){ best = dnm; bowMark = m; }                    // nearest qualifying mark
+    }
+  }
+
+  // layline: on the (wind-based) tacking-angle layline when beating to the mark. Your tacking
+  // angle is 2x the close-hauled angle; on the layline the mark sits that far off the bow.
+  const tackAngle = 2 * TAC.upwind;
+  let onLayline = false;
+  if(hasHdg && windFrom != null && mrkBrg != null && steer != null){
+    const upwind = Math.abs(angleDiff(windFrom, mrkBrg)) < 90;      // mark is upwind (a beat)
+    onLayline = upwind && Math.abs(Math.abs(steer) - tackAngle) <= LAY_TOL;
+  }
+
+  return { norm, hasGps, hasHdg, hdg, effHdg, sog, windFrom, markLbl, mrkBrg, distnm, steer, onCourse, bowMark, onLayline };
 }
 
 /* heading-up boat compass: boat fixed pointing up, the magnetic rose rotates so your heading
@@ -1594,6 +1628,13 @@ function rvBoatSvg(d){
     // simple boat hull seen from above, bow up: pointed bow, rounded stern (no sails).
     `<path d="M50,18.5 C59.4,31.3 61.9,51.7 56,72.1 C53.4,79.8 46.6,79.8 44,72.1 C38.1,51.7 40.6,31.3 50,18.5 Z" fill="#eef3f8" stroke="#0b1220" stroke-width="1.8" stroke-linejoin="round"/>`;
   if(d.windFrom != null) g += rvWindArrow(d.norm(d.windFrom - d.effHdg));
+  // bow-sight: the mark the boat is pointing at, in a circle at the boat's centre.
+  // green when it's your next mark, red when it's a DIFFERENT mark (wrong-mark warning).
+  if(d.bowMark){
+    const col = d.markLbl == null ? "#ffd54a" : (d.bowMark === d.markLbl ? "#34d36b" : "#ff5a4e");
+    g += `<circle cx="50" cy="50" r="8.6" fill="#0b1220" stroke="${col}" stroke-width="1.9"/>`+
+         `<text x="50" y="50" font-size="11" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="${col}">${d.bowMark}</text>`;
+  }
   return g + `</svg>`;
 }
 
@@ -1606,7 +1647,11 @@ function rvMarkSvg(d, arrowOpts, windOpts){
     `<circle cx="50" cy="50" r="46" fill="none" stroke="#2a3a55" stroke-width="2"/>`+
     rvCompass(d.effHdg);
   if(windOpts && d.windFrom != null) g += rvWindArrow(d.norm(d.windFrom - d.effHdg), windOpts);
-  if(d.hasGps && d.mrkBrg != null) g += rvArrow(d.norm(d.mrkBrg - d.effHdg), d.onCourse ? "#34d36b" : "#ffd54a", ao);
+  // arrow colour: green on course, RED when you're on the layline (tack now), else yellow
+  if(d.hasGps && d.mrkBrg != null){
+    const col = d.onCourse ? "#34d36b" : (d.onLayline ? "#ff3b30" : "#ffd54a");
+    g += rvArrow(d.norm(d.mrkBrg - d.effHdg), col, ao);
+  }
   return g + `<circle cx="50" cy="50" r="4" fill="#fff"/></svg>`;
 }
 
@@ -1625,10 +1670,23 @@ function rvNote(d){
   return "";
 }
 
+/* "you're on the layline" cue: a distinctive double high beep + a short buzz. */
+function laylineAlert(){
+  beep("layline"); setTimeout(()=>beep("layline"), 170);
+  if(navigator.vibrate) navigator.vibrate([130,80,130]);
+}
+/* fire the layline alert once when you cross onto the layline, re-arming when you leave it. */
+function laylineWatch(d){
+  const on = !!d.onLayline;
+  if(on && !geo.laylineOn) laylineAlert();
+  geo.laylineOn = on;
+}
+
 /* Race View 1 — two compasses side by side, each with its big number above/below. */
 function renderRaceView(){
   const host = $("raceView"); if(!host) return;
   const d = raceViewData();
+  laylineWatch(d);
   const hdgTxt = d.hasHdg ? `${hdg3(d.hdg)}<span class="rvDeg">&deg;M</span>` : `&mdash;`;
   const sogTxt = d.sog!=null ? `${d.sog.toFixed(1)} <small>KNOTS&nbsp;SOG</small>` : `&mdash; <small>SOG</small>`;
   const brgTxt = d.mrkBrg!=null ? `${hdg3(d.mrkBrg)}<span class="rvDeg">&deg;M</span>` : `&mdash;`;
@@ -1693,6 +1751,7 @@ function renderRaceView2(){
   const host = $("raceView2"); if(!host) return;
   maybeFetchDepth();
   const d = raceViewData();
+  laylineWatch(d);
   const sm = (lbl)=>`<small>${lbl}</small>`;
   const hdgV = d.hasHdg ? `${hdg3(d.hdg)}${sm("&deg;M")}` : "&mdash;";
   const sogV = d.sog!=null ? `${d.sog.toFixed(1)}${sm("KN")}` : "&mdash;";
@@ -2022,7 +2081,7 @@ function ensureAudio(){
 }
 const CUE = {           // frequency (Hz) + duration (s) per signal type
   gun:    [880, 0.75], long:   [700, 0.95], signal: [700, 0.45],
-  minute: [620, 0.35], tick:   [760, 0.12],
+  minute: [620, 0.35], tick:   [760, 0.12], layline: [988, 0.28],
 };
 function beep(type){
   if(!audioCtx) return;

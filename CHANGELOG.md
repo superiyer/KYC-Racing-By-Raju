@@ -126,7 +126,14 @@ which is bumped on every deploy so phones pull the new build.
   heading table, next-mark guidance, route, laylines, and race timer. W/L laps go leeward → windward
   directly (no start rounding between laps). **Custom Race is unchanged.**
 
-### v75 — Dashed mark-rose wind arrow
+### v76 — Bow-sight mark ID + layline alarm
+- **Bow-sight (boat compass):** a circled **mark letter** now appears at the centre of the boat when
+  your bow is lined up to pass within **50 yards** of a mark (scanning all KYC marks, not just your
+  course). It's **green** when that's your **next mark** and **red** when it's a **different** mark — a
+  wrong-mark warning (the accuracy sharpens with distance, since it's a cross-track test).
+- **Layline alarm (mark compass):** when you reach the **layline** to the mark (the mark sits at your
+  wind-based **tacking angle** off the bow, on either side), the mark arrow turns **red** and the app
+  gives a **double beep + buzz** — once on entry, re-arming when you leave. Applies while beating upwind.
 - The mark-compass wind arrow is now **thinner** and drawn as a **dashed** line (solid arrowhead) to
   set it apart from the boat-compass wind arrow.
 

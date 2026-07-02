@@ -24,6 +24,9 @@ Created by Raju Venkatraman.
   not tide-corrected, not for navigation.*
 - 🧭 **Live map** with your boat, heading, speed (SOG/COG) and breadcrumb track
 - ➡️ **Next-mark guidance** — bearing, distance, and which way to steer
+- 🎯 **Bow-sight** — the boat compass shows a circled **mark letter** when your bow is lined up on a mark
+  (green if it's your next mark, red if it's a *different* one) — no more chasing the wrong mark
+- 🚨 **Layline alarm** — the mark arrow turns **red with a beep** the moment you hit the layline (tack now!)
 - 💨 Enter the wind and get **point of sail, laylines, and the fastest route** (with tack/gybe points) drawn on the map
 - 🏁 **Race timer** auto-clocks your **lap and leg splits** at every mark rounding
 
