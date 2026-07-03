@@ -1,5 +1,5 @@
 /* Pro Race Ready — offline cache. Bump CACHE version when files change. */
-const CACHE = "wnr-v78";
+const CACHE = "wnr-v79";
 const ASSETS = [
   "./",
   "./index.html",
@@ -43,19 +43,20 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // the page itself (navigations + index.html): network-first so a single ordinary refresh
-  // shows new content, falling back to the cached copy only when offline.
-  const isHTML = req.mode === "navigate" ||
-                 url.pathname.endsWith("/") ||
-                 url.pathname.endsWith("/index.html") ||
-                 url.pathname.endsWith("index.html");
-  if (isHTML) {
+  // the app shell (root or index.html): network-first so a single ordinary refresh shows new
+  // content, falling back to the cached copy only when offline. IMPORTANT: only the shell is
+  // cached back as ./index.html — other same-origin pages (e.g. sounds.html) must NOT be, or
+  // they would clobber the offline app. Non-shell navigations fall through to cache-first below.
+  const isShell = url.pathname.endsWith("/") ||
+                  url.pathname.endsWith("index.html") ||
+                  (req.mode === "navigate" && !/\.[^\/]+$/.test(url.pathname));
+  if (isShell) {
     e.respondWith(
       fetch(req).then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put("./index.html", copy));
         return res;
-      }).catch(() => caches.match(req, { ignoreSearch: true }).then((h) => h || caches.match("./index.html")))
+      }).catch(() => caches.match("./index.html"))
     );
     return;
   }

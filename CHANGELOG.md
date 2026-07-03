@@ -126,6 +126,13 @@ which is bumped on every deploy so phones pull the new build.
   heading table, next-mark guidance, route, laylines, and race timer. W/L laps go leeward → windward
   directly (no start rounding between laps). **Custom Race is unchanged.**
 
+### v79 — Sound-sample preview + service-worker hardening
+- Added a standalone **`sounds.html`** audition page (three themes: Regatta Bells, Ship's Horn, Arcade
+  Victory) to pick race sound effects before wiring them in. Not linked from the app.
+- **Service worker:** only the **app shell** (root / `index.html`) is cached back as `./index.html`.
+  Previously *any* navigation was, so opening another page (like the samples) could overwrite the offline
+  app. Non-shell pages now fall through to normal caching.
+
 ### v78 — Auto-fill wind from the first mark (KYC)
 - Picking the **first mark** (the "wind direction" step) now **pre-fills "Wind from"** with that mark's
   bearing — e.g. first mark **C (East) → 090°M**. Adjust it to your true wind reading as needed. Applies to
