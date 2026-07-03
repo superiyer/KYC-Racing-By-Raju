@@ -126,6 +126,14 @@ which is bumped on every deploy so phones pull the new build.
   heading table, next-mark guidance, route, laylines, and race timer. W/L laps go leeward → windward
   directly (no start rounding between laps). **Custom Race is unchanged.**
 
+### v80 — Race sound effects + remembered RC pin
+- **Ship's Horn sound effects** now play at the three big moments — **race start**, **each mark
+  rounding**, and the **finish** — each as a **triple horn blast** (synthesized, no files). Great on a
+  bluetooth speaker. (Audio unlocks when you start a timer or open the Race View.)
+- **RC boat position is remembered on this device.** Your **Ping RC boat** position is saved locally and
+  **restored as the default RC end** when you set a course, so a mid-race app restart no longer loses your
+  start/finish line. **Clear line** forgets it; a fresh ping updates it.
+
 ### v79 — Sound-sample preview + service-worker hardening
 - Added a standalone **`sounds.html`** audition page (three themes: Regatta Bells, Ship's Horn, Arcade
   Victory) to pick race sound effects before wiring them in. Not linked from the app.
