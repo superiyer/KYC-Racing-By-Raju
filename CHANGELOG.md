@@ -126,6 +126,11 @@ which is bumped on every deploy so phones pull the new build.
   heading table, next-mark guidance, route, laylines, and race timer. W/L laps go leeward → windward
   directly (no start rounding between laps). **Custom Race is unchanged.**
 
+### v78 — Auto-fill wind from the first mark (KYC)
+- Picking the **first mark** (the "wind direction" step) now **pre-fills "Wind from"** with that mark's
+  bearing — e.g. first mark **C (East) → 090°M**. Adjust it to your true wind reading as needed. Applies to
+  KYC courses only (RC has its own wind entry; Custom has none).
+
 ### v77 — Layout cleanup
 - **Course type is now a dropdown** (KYC), defaulting to **Z · Trapezoid** (first in the list). Laps and
   First mark stay as buttons.

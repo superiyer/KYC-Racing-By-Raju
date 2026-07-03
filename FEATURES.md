@@ -11,6 +11,7 @@ Created by Raju Venkatraman.
 - 📋 Pick any **KYC Wednesday course** (W, Z, O, T, L, S — 1 to 4 laps) and instantly see every leg's **heading, distance, and mark positions**
 - 🛥️ **RC Race** — on the committee boat? **Ping the RC position**, then drop each mark by **magnetic bearing + distance** (Windward, Offset, Reach, Leeward, Pin, Finish). Set the wind and the whole course appears.
 - 🛠️ Or build a **Custom course** from your own marks — save & share it with the team
+- 💨 **Wind auto-fills** from your first-mark pick (KYC) — e.g. first mark **C (East) → 090°M** — then tweak to the true reading
 - 🎯 **Ping the Line** — sail the ends and it tells you the **favored (more-upwind) end** to start at
 - 📏 Live **distance to the line** + **OVER EARLY** warning
 - ⏱️ **Start timer** with one-tap **ISAF 5·4·1** sequence — beeps, vibrates & flashes at 5/4/1 min and the gun

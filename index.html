@@ -1057,7 +1057,7 @@ function validateAll(){
 
 /* Build tag shown on the splash so you can confirm you're on the newest build.
    Bump this in lockstep with CACHE in sw.js on every deploy. */
-const BUILD_TAG = "v77";
+const BUILD_TAG = "v78";
 
 const state = { fam: FAMILIES[0], mark: "A", laps: 1, custom: false, mode: "kyc",
                 pickedFam: true, pickedMark: false, committed: false };   // default course type = Z (Trapezoid)
@@ -1105,7 +1105,7 @@ function buildPickers(){
   ts.value = state.fam.code;
   const mb = $("markBtns");
   ["A","B","C","D","E","F","G","H"].forEach(m=>{
-    const b = mkBtn(`${m}<small>${MARKS[m].dir} wind</small>`, "", ()=>{ state.mark=m; state.pickedMark=true; refreshPicker(); });
+    const b = mkBtn(`${m}<small>${MARKS[m].dir} wind</small>`, "", ()=>{ state.mark=m; state.pickedMark=true; autofillKycWind(); refreshPicker(); });
     b.dataset.mark=m; mb.appendChild(b);
   });
   const lb = $("lapBtns");
@@ -1119,6 +1119,18 @@ function buildPickers(){
 function onTypeSelect(){
   const f = FAMILIES.find(x=>x.code===$("typeSelect").value);
   if(f){ state.fam=f; state.pickedFam=true; refreshPicker(); }
+}
+
+/* In KYC mode the first mark IS the wind direction (the windward mark sits upwind), so
+   pre-fill "Wind from" with the CM->mark magnetic bearing. The sailor adjusts to the true
+   reading. Only KYC courses know the wind this way (RC has its own wind input; Custom none). */
+function autofillKycWind(){
+  if(state.mode !== "kyc") return;
+  const el = $("windIn"); if(!el) return;
+  const h = HEADINGS.CM[state.mark];
+  if(h == null) return;
+  el.value = String(Math.round(parseFloat(h)) % 360);
+  if(state.committed) el.dispatchEvent(new Event("input"));   // refresh guidance/laylines like a manual entry
 }
 
 function fmtNm(x){ return x.toFixed(2); }
