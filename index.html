@@ -34,6 +34,7 @@
   @keyframes fadeIn{ from{opacity:0;} to{opacity:1;} }
   .splashMsg{color:var(--accent); font-weight:700; font-size:14px; margin:4px 0;}
   .splashMsg:empty{display:none;}
+  .splashVer{margin-top:12px; font-size:12px; font-weight:700; letter-spacing:.4px; color:var(--muted);}
   /* loading dots during the 2.5s splash animation */
   .gateBusy{margin-top:14px; text-align:center;}
   .gateBusy .dots{display:inline-flex; gap:7px;}
@@ -501,6 +502,7 @@
       </div>
       <div id="gateMsg" class="gateMsg"></div>
     </div>
+    <div id="splashVer" class="splashVer"></div>
   </div>
 </div>
 
@@ -1108,6 +1110,10 @@ function validateAll(){
 <script>
 "use strict";
 /* ================= UI ================= */
+
+/* Build tag shown on the splash so you can confirm you're on the newest build.
+   Bump this in lockstep with CACHE in sw.js on every deploy. */
+const BUILD_TAG = "v76";
 
 const state = { fam: FAMILIES[0], mark: "A", laps: 1, custom: false, mode: "kyc",
                 pickedFam: false, pickedMark: false, committed: false };
@@ -3023,6 +3029,7 @@ const delay = (ms)=>new Promise(r=>setTimeout(r, ms));
    -> access code (remembered once validated). The separate timed splash is hidden
    for now — the Agreement page already shows the logo and waits for an "I Agree" tap. */
 async function initGate(){
+  $("splashVer").textContent = "Build " + BUILD_TAG;
   $("agreeBox").style.display = "none";
   $("gateBox").style.display = "none";
   $("gateBusy").style.display = "block";

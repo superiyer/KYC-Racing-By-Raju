@@ -126,7 +126,9 @@ which is bumped on every deploy so phones pull the new build.
   heading table, next-mark guidance, route, laylines, and race timer. W/L laps go leeward → windward
   directly (no start rounding between laps). **Custom Race is unchanged.**
 
-### v76 — Bow-sight mark ID + layline alarm
+### v76 — Bow-sight mark ID + layline alarm + build tag
+- **Build tag on the splash:** the launch screen now shows the current **build number** (e.g. "Build v76")
+  so you can confirm at a glance you're running the newest deploy.
 - **Bow-sight (boat compass):** a circled **mark letter** now appears at the centre of the boat when
   your bow is lined up to pass within **50 yards** of a mark (scanning all KYC marks, not just your
   course). It's **green** when that's your **next mark** and **red** when it's a **different** mark — a
