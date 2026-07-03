@@ -16,13 +16,12 @@ Created by Raju Venkatraman.
 - ⏱️ **Start timer** with one-tap **ISAF 5·4·1** sequence — beeps, vibrates & flashes at 5/4/1 min and the gun
 
 ## During the race
-- 🎛️ **Race View** — a big two-panel readout: your **heading + speed** with the **wind** on the left, and a
-  bold **arrow + heading + distance (yards)** to the next mark on the right. Heading-up, so the arrow points
-  exactly where to steer. A **second Race View** (F1-car icon) stacks the two compasses **top & bottom** so
-  each rose is as big as the phone allows, with the numbers tucked into the corners — including an
-  **≈ approximate water depth** (NOAA bathymetry, feet) when you have a signal. *Rough indicator only,
+- 🎛️ **Race View** (checkered-flag icon) — two **big heading-up compasses stacked top (boat) & bottom
+  (mark)**, each as large as the phone allows, with the numbers tucked into the corners: **heading, speed,
+  wind, bearing, distance**, plus an **≈ approximate water depth** (NOAA bathymetry, feet) when you have a
+  signal. Heading-up, so each arrow points exactly where to steer. *Depth is a rough indicator only,
   not tide-corrected, not for navigation.*
-- 🧭 **Live map** with your boat, heading, speed (SOG/COG) and breadcrumb track
+- 🧭 **Live map** with your boat, heading, speed and breadcrumb track
 - ➡️ **Next-mark guidance** — bearing, distance, and which way to steer
 - 🎯 **Bow-sight** — the boat compass shows a circled **mark letter** when your bow is lined up on a mark
   (green if it's your next mark, red if it's a *different* one) — no more chasing the wrong mark

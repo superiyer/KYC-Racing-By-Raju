@@ -126,6 +126,15 @@ which is bumped on every deploy so phones pull the new build.
   heading table, next-mark guidance, route, laylines, and race timer. W/L laps go leeward → windward
   directly (no start rounding between laps). **Custom Race is unchanged.**
 
+### v77 — Layout cleanup
+- **Course type is now a dropdown** (KYC), defaulting to **Z · Trapezoid** (first in the list). Laps and
+  First mark stay as buttons.
+- **Start-line timer and Race timer moved directly under Course Setup**, and **both start collapsed**.
+- **Removed the SOG / heading / wind strip** at the top of the live map (redundant with the Race View and
+  guidance panel).
+- **Removed the old side-by-side Race View.** There's now a **single race-view button** (the checkered
+  flag) that opens the **stacked top/bottom compasses** — the double-flag button is gone.
+
 ### v76 — Bow-sight mark ID + layline alarm + build tag
 - **Build tag on the splash:** the launch screen now shows the current **build number** (e.g. "Build v76")
   so you can confirm at a glance you're running the newest deploy.

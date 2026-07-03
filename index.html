@@ -81,6 +81,10 @@
   .page{padding:14px 14px 0;}
   .liveSep{margin:18px 0 6px;}
   /* ---- mode toggle + custom race form ---- */
+  /* course-type dropdown (KYC) */
+  .courseSelect{width:100%; padding:12px 14px; font-size:16px; font-weight:700; color:#0b2440;
+       background:#fff; border:2px solid #cdd8e6; border-radius:12px; appearance:auto; cursor:pointer;}
+  .courseSelect:focus{outline:none; border-color:var(--accent);}
   /* collapsible Course-setup section */
   .setupBox{margin:14px 0 4px;}
   .setupHead{display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;
@@ -145,16 +149,6 @@
   /* Map page title + credits use the same sizes as the Course page (32px / 17px). */
   .mapHead{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:8px 0;}
   .mapCourse{font-size:22px; font-weight:800; color:var(--accent); letter-spacing:.5px;}
-  .mapStats{display:grid; grid-template-columns:1fr 1fr auto; gap:8px; margin-bottom:10px;}
-  .mapStats .stat{background:var(--ink); color:#fff; border-radius:14px; padding:10px 8px; text-align:center;}
-  .mapStats .stat .lbl{color:#9fb3d0;}
-  .mapStats .stat .val{font-size:clamp(34px,11vw,58px); color:#fff; line-height:1;}
-  .mapStats .stat .unit{color:#9fb3d0;}
-  .windCompass{background:var(--ink); border-radius:14px; padding:6px 8px 7px; display:flex;
-               flex-direction:column; align-items:center; justify-content:center; gap:3px; min-width:92px;}
-  .windCompass svg{width:74px; height:74px; display:block;}
-  .windCompass .wcLbl{color:#9fb3d0; font-size:11px; font-weight:700; letter-spacing:.5px;}
-  .windCompass .wcLbl b{color:#ffd54a;}
   .mapDiagram{max-width:560px; margin:10px auto;}
   .mapDiagram svg{width:100%; height:auto; display:block; border:1px solid var(--line);
                   border-radius:12px; background:#fbfcfe;}
@@ -411,26 +405,7 @@
   .mapCtrl button.on{background:var(--accent); border-color:var(--accent); color:#fff;}
   .mapCtrl .iconBtn{display:inline-flex; align-items:center; justify-content:center; padding:7px 11px;}
   .mapCtrl .iconBtn svg{display:block;}
-  /* Race View — big two-column heading/distance readout that replaces the map */
-  .raceView{margin-top:6px; border:2px solid var(--ink); border-radius:14px; overflow:hidden;
-       display:grid; grid-template-columns:1fr 1fr; background:#0b1220;}
-  .rvCol{display:flex; flex-direction:column; align-items:center; justify-content:space-between;
-       padding:14px 8px 16px; min-height:300px; gap:6px;}
-  .rvCol.rvBoat{background:#0e1f16;} .rvCol.rvMark{background:#13243d; border-left:2px solid #25324a;}
-  .rvLbl{font-size:13px; font-weight:800; letter-spacing:.08em; color:#9fb3d0; text-transform:uppercase;}
-  .rvBoat .rvLbl{color:#7fd6a3;}
-  .rvBig{font-size:clamp(34px,11vw,64px); font-weight:900; line-height:1; color:#fff; font-variant-numeric:tabular-nums;}
-  .rvBig .rvDeg{font-size:.5em; font-weight:800; vertical-align:super; color:#9fb3d0;}
-  .rvGfx{width:100%; flex:1; display:flex; align-items:center; justify-content:center;}
-  .rvGfx svg{width:min(46vw,170px); height:min(46vw,170px); display:block;}
-  .rvSub{font-size:clamp(24px,8vw,44px); font-weight:900; line-height:1.05; color:#fff; text-align:center; font-variant-numeric:tabular-nums;}
-  .rvSub small{display:block; font-size:.5em; font-weight:800; color:#9fb3d0; letter-spacing:.04em;}
-  .rvSub .rvU{font-size:.42em; font-weight:800; color:#9fb3d0; letter-spacing:.04em;}
-  .rvNote{grid-column:1 / -1; text-align:center; padding:6px 10px 10px; color:#ffd54a; font-size:12.5px; font-weight:700;}
-  .rvSteer{grid-column:1 / -1; text-align:center; padding:9px 10px; font-size:clamp(20px,6.5vw,32px);
-       font-weight:900; letter-spacing:.02em; border-top:2px solid #25324a;}
-  .rvSteer.on{color:#34d36b;} .rvSteer.turn{color:#ffd54a;}
-  /* Race View 2 — two BIG compasses stacked top/bottom, data points in the dead corners */
+  /* Race View — two BIG compasses stacked top/bottom, data points in the dead corners */
   .raceView2{margin-top:6px; border:2px solid var(--ink); border-radius:14px; overflow:hidden;
        display:flex; flex-direction:column; background:#0b1220;}
   .rv2Panel{position:relative; display:flex; align-items:center; justify-content:center; padding:6px 4px;}
@@ -543,7 +518,7 @@
       <div id="kycPicker">
         <div class="step">
           <h2>1 &middot; Course type</h2>
-          <div class="grid types" id="typeBtns"></div>
+          <select class="courseSelect" id="typeSelect" onchange="onTypeSelect()"></select>
         </div>
 
         <div class="step" id="lapStep">
@@ -635,36 +610,7 @@
         </div><!-- /secBody -->
       </div><!-- /setupBox -->
 
-      <div id="result">
-        <div class="codeRow"><span id="cCode"></span><span id="cName"></span></div>
-        <div class="facts" id="cFacts"></div>
-        <div id="cNotes"></div>
-        <div class="seq" id="cSeq"></div>
-        <table id="cTable">
-          <thead>
-            <tr><th>Leg</th><th>From &rarr; To</th><th class="gap">Heading</th><th class="gap">Dist&nbsp;nm</th><th class="gap">To Position</th></tr>
-          </thead>
-          <tbody></tbody>
-          <tfoot></tfoot>
-        </table>
-      </div>
-    </section>
-
-    <!-- ============ LIVE MAP (same page, revealed after Set Course) ============ -->
-    <section class="page" id="pg1" style="display:none">
-      <hr class="rule liveSep">
-      <div class="mapHead">
-        <span id="mapCourse" class="mapCourse">&mdash;</span>
-        <span id="gpsStatus" class="gpsStatus">GPS off</span>
-      </div>
-
-      <div class="mapStats">
-        <div class="stat"><div class="lbl">SOG</div><div class="val" id="sog">&mdash;</div><div class="unit">knots</div></div>
-        <div class="stat"><div class="lbl">COG</div><div class="val" id="cog">&mdash;</div><div class="unit">&deg; magnetic</div></div>
-        <div id="windCompass" class="windCompass"></div>
-      </div>
-
-      <div class="startLine collapsible" id="startBox">
+      <div class="startLine collapsible collapsed" id="startBox">
         <div class="slHead secHead" onclick="toggleSection('startBox')">
           <span>Start line &amp; timer <b class="slHeadClock" id="slHeadClock"></b></span><span class="secChevron">&#9662;</span>
         </div>
@@ -674,7 +620,7 @@
             <button id="slBtnPin" onclick="pingEnd('pin')">Ping Pin end</button>
             <button class="slClear" onclick="clearLine()">Clear line</button>
           </div>
-          <div class="slResult" id="slResult">Ping the start-line end(s). Enter the wind (below) to see the favored end.</div>
+          <div class="slResult" id="slResult">Ping the start-line end(s). Enter the wind to see the favored end.</div>
           <div class="slDist" id="slDist"></div>
           <div class="slMapHint" id="slMapHint">On the map: the <span style="color:#0891b2;font-weight:800">teal dashed line</span> is your pinged start line; the <span style="color:#16a34a;font-weight:800">green end</span> is the favored (more upwind) end.</div>
           <div class="slTimer" id="slTimer">
@@ -720,6 +666,29 @@
         </div>
       </div>
 
+      <div id="result">
+        <div class="codeRow"><span id="cCode"></span><span id="cName"></span></div>
+        <div class="facts" id="cFacts"></div>
+        <div id="cNotes"></div>
+        <div class="seq" id="cSeq"></div>
+        <table id="cTable">
+          <thead>
+            <tr><th>Leg</th><th>From &rarr; To</th><th class="gap">Heading</th><th class="gap">Dist&nbsp;nm</th><th class="gap">To Position</th></tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot></tfoot>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ LIVE MAP (same page, revealed after Set Course) ============ -->
+    <section class="page" id="pg1" style="display:none">
+      <hr class="rule liveSep">
+      <div class="mapHead">
+        <span id="mapCourse" class="mapCourse">&mdash;</span>
+        <span id="gpsStatus" class="gpsStatus">GPS off</span>
+      </div>
+
       <div class="guide collapsible" id="guide">
         <div class="gHead">
           <span class="gNext secHead" onclick="toggleSection('guide')">Next mark: <b id="gMark">&mdash;</b><span class="secChevron">&#9662;</span></span>
@@ -737,7 +706,7 @@
       </div>
 
       <div class="mapCtrl">
-        <button id="raceViewBtn" class="iconBtn" onclick="toggleRaceView()" title="Race view (side by side)" aria-label="Race view">
+        <button id="raceViewBtn" class="iconBtn" onclick="toggleRaceView2()" title="Race view (compasses)" aria-label="Race view">
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
             <line x1="5" y1="3" x2="5" y2="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
             <rect x="5" y="3.5" width="14" height="9" fill="none" stroke="currentColor" stroke-width="1.4"/>
@@ -748,30 +717,6 @@
               <rect x="15.5" y="6.5" width="3.5" height="3"/>
               <rect x="5"    y="9.5" width="3.5" height="3"/>
               <rect x="12"   y="9.5" width="3.5" height="3"/>
-            </g>
-          </svg>
-        </button>
-        <button id="raceView2Btn" class="iconBtn" onclick="toggleRaceView2()" title="Race view (stacked compasses)" aria-label="Race view stacked">
-          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-            <line x1="13" y1="2.5" x2="13" y2="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            <rect x="13" y="3" width="8" height="6" fill="none" stroke="currentColor" stroke-width="1.2"/>
-            <g fill="currentColor">
-              <rect x="13" y="3" width="2" height="2"/>
-              <rect x="17" y="3" width="2" height="2"/>
-              <rect x="15" y="5" width="2" height="2"/>
-              <rect x="19" y="5" width="2" height="2"/>
-              <rect x="13" y="7" width="2" height="2"/>
-              <rect x="17" y="7" width="2" height="2"/>
-            </g>
-            <line x1="3" y1="10" x2="3" y2="21.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            <rect x="3" y="10.5" width="8" height="6" fill="none" stroke="currentColor" stroke-width="1.2"/>
-            <g fill="currentColor">
-              <rect x="3" y="10.5" width="2" height="2"/>
-              <rect x="7" y="10.5" width="2" height="2"/>
-              <rect x="5" y="12.5" width="2" height="2"/>
-              <rect x="9" y="12.5" width="2" height="2"/>
-              <rect x="3" y="14.5" width="2" height="2"/>
-              <rect x="7" y="14.5" width="2" height="2"/>
             </g>
           </svg>
         </button>
@@ -820,7 +765,6 @@
         </button>
       </div>
       <div id="mapDiagram" class="mapDiagram"></div>
-      <div id="raceView" class="raceView" style="display:none"></div>
       <div id="raceView2" class="raceView2" style="display:none"></div>
 
       <div id="gpsOffNote" class="mapNote gpsOffNote" style="display:none">
@@ -913,12 +857,12 @@ const HEADINGS = {
 /* Course families. `seq` is the per-lap mark sequence (CM excluded; CM is rounded
    between laps — port — and at the finish — starboard). Lap-based families take 1–4 laps. */
 const FAMILIES = [
-  {code:"W", name:"Wind/Lee", dist:"2.5 nm / lap", laps:true,
-   seq:{A:["A","E"],B:["B","F"],C:["C","G"],D:["D","H"],
-        E:["E","A"],F:["F","B"],G:["G","C"],H:["H","D"]}},
   {code:"Z", name:"Trapezoid", dist:"3.1 nm / lap", laps:true,
    seq:{A:["A","H","F","E"],B:["B","A","G","F"],C:["C","B","H","G"],D:["D","C","A","H"],
         E:["E","D","B","A"],F:["F","E","C","B"],G:["G","F","D","C"],H:["H","G","E","D"]}},
+  {code:"W", name:"Wind/Lee", dist:"2.5 nm / lap", laps:true,
+   seq:{A:["A","E"],B:["B","F"],C:["C","G"],D:["D","H"],
+        E:["E","A"],F:["F","B"],G:["G","C"],H:["H","D"]}},
   {code:"O", name:"Modified Olympic", dist:"5.5 nm", laps:false,
    seq:{A:["A","G","E","A","E"],B:["B","H","F","B","F"],C:["C","A","G","C","G"],D:["D","B","H","D","H"],
         E:["E","C","A","E","A"],F:["F","D","B","F","B"],G:["G","E","C","G","C"],H:["H","F","D","H","D"]}},
@@ -1113,10 +1057,10 @@ function validateAll(){
 
 /* Build tag shown on the splash so you can confirm you're on the newest build.
    Bump this in lockstep with CACHE in sw.js on every deploy. */
-const BUILD_TAG = "v76";
+const BUILD_TAG = "v77";
 
 const state = { fam: FAMILIES[0], mark: "A", laps: 1, custom: false, mode: "kyc",
-                pickedFam: false, pickedMark: false, committed: false };
+                pickedFam: true, pickedMark: false, committed: false };   // default course type = Z (Trapezoid)
 let lastKyc = { fam: FAMILIES[0], mark: "A", laps: 1,
                 pickedFam: false, pickedMark: false, committed: false };   // remembered KYC selection
 let coordFmt = "dec";                                     // 'dec' | 'dm'
@@ -1129,8 +1073,7 @@ const geo = {
   watchId: null, lastPos: null, prev: null, sogKt: null, cogTrue: null,
   track: [], seqArr: [], targetIdx: 1, manual: false, fit: "course",
   view: null,   // manual pinch/pan viewBox {x,y,w,h} in diagram units, or null = whole course
-  raceView: false,   // Race View 1 (two-column side-by-side heading/distance readout) replaces the map
-  raceView2: false,  // Race View 2 (stacked top/bottom big compasses) replaces the map
+  raceView2: false,  // Race View (stacked top/bottom big compasses) replaces the map
   lineRC: null, linePin: null,   // start-line ends pinged by GPS ("ping the line")
   depthFt: null, depthPos: null, depthFetchAt: 0, depthBusy: false,   // approx NOAA bathymetry (Race View 2)
   laylineOn: false,   // latch so the layline alert beeps once on entry, not every frame
@@ -1152,12 +1095,14 @@ function mkBtn(html, cls, onclick){
 }
 
 function buildPickers(){
-  const tb = $("typeBtns");
+  const ts = $("typeSelect");
   FAMILIES.forEach(f=>{
-    const b = mkBtn(`${f.code} &middot; ${f.name}<small>${f.dist}${f.downwindFinish?" &middot; downwind finish":""}</small>`,
-      "", ()=>{ state.fam=f; state.pickedFam=true; refreshPicker(); });
-    b.dataset.code=f.code; tb.appendChild(b);
+    const o = document.createElement("option");
+    o.value = f.code;
+    o.textContent = `${f.code} · ${f.name} — ${f.dist}${f.downwindFinish?" · downwind finish":""}`;
+    ts.appendChild(o);
   });
+  ts.value = state.fam.code;
   const mb = $("markBtns");
   ["A","B","C","D","E","F","G","H"].forEach(m=>{
     const b = mkBtn(`${m}<small>${MARKS[m].dir} wind</small>`, "", ()=>{ state.mark=m; state.pickedMark=true; refreshPicker(); });
@@ -1168,6 +1113,12 @@ function buildPickers(){
     const b = mkBtn(`${n}<small>lap${n>1?"s":""}</small>`, "", ()=>{ state.laps=n; refreshPicker(); });
     b.dataset.laps=n; lb.appendChild(b);
   });
+}
+
+/* course-type dropdown change */
+function onTypeSelect(){
+  const f = FAMILIES.find(x=>x.code===$("typeSelect").value);
+  if(f){ state.fam=f; state.pickedFam=true; refreshPicker(); }
 }
 
 function fmtNm(x){ return x.toFixed(2); }
@@ -1189,7 +1140,7 @@ function markHtml(m){ return (m===ACTIVE_START || m===ACTIVE_FINISH) ? '<span cl
 /* Update only the KYC picker (button highlights + step visibility).
    Nothing in the result table / map is touched — that waits for Set Course. */
 function refreshPicker(){
-  document.querySelectorAll("#typeBtns .opt").forEach(b=>b.classList.toggle("sel", state.pickedFam && b.dataset.code===state.fam.code));
+  const ts = $("typeSelect"); if(ts) ts.value = state.fam.code;
   document.querySelectorAll("#markBtns .opt").forEach(b=>b.classList.toggle("sel", state.pickedMark && b.dataset.mark===state.mark));
   document.querySelectorAll("#lapBtns .opt").forEach(b=>b.classList.toggle("sel", +b.dataset.laps===state.laps));
   const showLaps = !state.pickedFam || state.fam.laps;
@@ -1488,38 +1439,25 @@ function buildRouteSvg(K){
 
 /* redraw the live map (boat, track, route, etc.) — full re-render keeps symbols
    a constant on-screen size at the current zoom. */
-function drawBoatOverlay(){ if(geo.raceView) renderRaceView(); else if(geo.raceView2) renderRaceView2(); else renderMap(); }
+function drawBoatOverlay(){ if(geo.raceView2) renderRaceView2(); else renderMap(); }
 
 /* ---------- Race View: big two-column heading + distance-to-mark readout ----------
    Replaces the map area. Heading-up: the boat is fixed pointing up and the wind/mark
    arrows rotate to where those things are RELATIVE to the boat's current heading. */
-function toggleRaceView(){
-  ensureAudio();                                   // unlock audio for the layline alert
-  setRaceView(!geo.raceView);
-  track("race_view", { detail: geo.raceView ? "on" : "off" });
-}
 function toggleRaceView2(){
   ensureAudio();                                   // unlock audio for the layline alert
   setRaceView2(!geo.raceView2);
   track("race_view2", { detail: geo.raceView2 ? "on" : "off" });
 }
-/* show/hide the map vs. either race-view host to match the current geo flags */
+/* show/hide the map vs. the race-view host to match geo.raceView2 */
 function syncRaceViews(){
-  const rv = $("raceView"), rv2 = $("raceView2"), md = $("mapDiagram");
-  if(rv)  rv.style.display  = geo.raceView  ? "grid" : "none";
+  const rv2 = $("raceView2"), md = $("mapDiagram");
   if(rv2) rv2.style.display = geo.raceView2 ? "flex" : "none";
-  if(md)  md.style.display  = (geo.raceView || geo.raceView2) ? "none" : "block";
-  if(geo.raceView || geo.raceView2){ ["gpsOffNote","offGrid"].forEach(id=>{ const e=$(id); if(e) e.style.display="none"; }); }
-}
-function setRaceView(on){
-  geo.raceView = on;
-  if(on) geo.raceView2 = false;          // the two race views are mutually exclusive
-  syncRaceViews();
-  if(on) renderRaceView(); else { updateZoomBtn(); renderMap(); }
+  if(md)  md.style.display  = geo.raceView2 ? "none" : "block";
+  if(geo.raceView2){ ["gpsOffNote","offGrid"].forEach(id=>{ const e=$(id); if(e) e.style.display="none"; }); }
 }
 function setRaceView2(on){
   geo.raceView2 = on;
-  if(on) geo.raceView = false;
   syncRaceViews();
   if(on) renderRaceView2(); else { updateZoomBtn(); renderMap(); }
 }
@@ -1688,39 +1626,6 @@ function laylineWatch(d){
   geo.laylineOn = on;
 }
 
-/* Race View 1 — two compasses side by side, each with its big number above/below. */
-function renderRaceView(){
-  const host = $("raceView"); if(!host) return;
-  const d = raceViewData();
-  laylineWatch(d);
-  const hdgTxt = d.hasHdg ? `${hdg3(d.hdg)}<span class="rvDeg">&deg;M</span>` : `&mdash;`;
-  const sogTxt = d.sog!=null ? `${d.sog.toFixed(1)} <small>KNOTS&nbsp;SOG</small>` : `&mdash; <small>SOG</small>`;
-  const brgTxt = d.mrkBrg!=null ? `${hdg3(d.mrkBrg)}<span class="rvDeg">&deg;M</span>` : `&mdash;`;
-  const yd = d.distnm!=null ? Math.round(d.distnm*2025.37) : null;
-  // mirror the SOG footer: big nm number (aligns with SOG), yards on the small second line
-  const distHtml = d.distnm!=null
-    ? `${d.distnm.toFixed(2)} <span class="rvU">NM</span><small>${yd.toLocaleString()}&nbsp;YARDS</small>`
-    : `&mdash; <small>DISTANCE</small>`;
-  const note = rvNote(d);
-
-  host.innerHTML =
-    `<div class="rvCol rvBoat">`+
-      `<div class="rvLbl">Your heading</div>`+
-      `<div class="rvBig">${hdgTxt}</div>`+
-      `<div class="rvGfx">${rvBoatSvg(d)}</div>`+
-      `<div class="rvSub">${sogTxt}</div>`+
-    `</div>`+
-    `<div class="rvCol rvMark">`+
-      `<div class="rvLbl">To mark ${d.markLbl || "&mdash;"}</div>`+
-      `<div class="rvBig">${brgTxt}</div>`+
-      `<div class="rvGfx">${rvMarkSvg(d)}</div>`+
-      `<div class="rvSub">${distHtml}</div>`+
-    `</div>`+
-    rvSteerHtml(d, "rvSteer") +
-    (note ? `<div class="rvNote">${note}</div>` : "");
-  updateZoomBtn();
-}
-
 /* Approximate water depth at the current position from NOAA NCEI's global bathymetry DEM
    (CORS-enabled, free, no key). This is surveyed sea-floor depth relative to a fixed datum,
    NOT tide-corrected real-time depth, and it's online-only — a rough indicator, never for
@@ -1846,19 +1751,18 @@ function setViewBoxOnly(vb){
 }
 
 function updateZoomBtn(){
-  const active = (geo.raceView || geo.raceView2) ? "" : (geo.view ? "" : geo.fit);   // race view / manual pan -> no fit button lit
+  const active = geo.raceView2 ? "" : (geo.view ? "" : geo.fit);   // race view / manual pan -> no fit button lit
   const set = (id, on)=>{ const b=$(id); if(b) b.classList.toggle("on", on); };
-  set("raceViewBtn", geo.raceView);
-  set("raceView2Btn", geo.raceView2);
+  set("raceViewBtn", geo.raceView2);
   set("zoomBtn", active === "boat");
   set("courseBtn", active === "course");
   set("bothBtn", active === "both");
 }
 
-/* leaving either Race View just un-hides the map; the caller re-renders it */
+/* leaving the Race View just un-hides the map; the caller re-renders it */
 function exitRaceView(){
-  if(!geo.raceView && !geo.raceView2) return;
-  geo.raceView = false; geo.raceView2 = false;
+  if(!geo.raceView2) return;
+  geo.raceView2 = false;
   syncRaceViews();
 }
 
@@ -2447,9 +2351,12 @@ function onPos(p){
 }
 
 function updateLive(){
-  $("sog").innerHTML = geo.sogKt==null ? "&mdash;" : geo.sogKt.toFixed(1);
-  if(geo.cogTrue==null) $("cog").innerHTML = "&mdash;";
-  else $("cog").textContent = String(Math.round(trueToMag(geo.cogTrue))%360).padStart(3,"0");
+  const sogEl = $("sog"), cogEl = $("cog");   // removed from the map header; guard in case absent
+  if(sogEl) sogEl.innerHTML = geo.sogKt==null ? "&mdash;" : geo.sogKt.toFixed(1);
+  if(cogEl){
+    if(geo.cogTrue==null) cogEl.innerHTML = "&mdash;";
+    else cogEl.textContent = String(Math.round(trueToMag(geo.cogTrue))%360).padStart(3,"0");
+  }
   if(geo.lastPos){
     $("livePos").innerHTML = fmtPos2(geo.lastPos.lat, geo.lastPos.lon);
     $("acc").textContent = geo.acc!=null ? "±"+Math.round(geo.acc)+" m" : "";
@@ -3106,7 +3013,7 @@ if(errs.length){
   box.textContent="DATA ERRORS — fix before racing:\n"+errs.join("\n");
 }
 buildPickers();
-refreshPicker();                       // no default course selected
+refreshPicker();                       // default course type = Z (Trapezoid)
 $("result").style.display = "none";    // table + map appear only after Set Course
 $("pg1").style.display = "none";       // live map section hidden until Set Course
 $("mapCourse").innerHTML = "&mdash;";
