@@ -126,6 +126,13 @@ which is bumped on every deploy so phones pull the new build.
   heading table, next-mark guidance, route, laylines, and race timer. W/L laps go leeward → windward
   directly (no start rounding between laps). **Custom Race is unchanged.**
 
+### v81 — RC pin: online storage + Clear-line keeps it
+- The remembered **RC boat position is now stored online** (Google Sheet backend, per device) as the
+  source of truth, with the on-device copy kept as an instant/offline cache. So it survives a reinstall
+  or a new phone, not just an app restart. Requires the backend to support `save_pin` / `get_pin`.
+- **Clear line no longer forgets the remembered pin** — it just clears the on-screen start line so you can
+  re-ping; the saved RC position stays and is restored when you next set a course.
+
 ### v80 — Race sound effects + remembered RC pin
 - **Ship's Horn sound effects** now play at the three big moments — **race start**, **each mark
   rounding**, and the **finish** — each as a **triple horn blast** (synthesized, no files). Great on a

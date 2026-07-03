@@ -1057,7 +1057,7 @@ function validateAll(){
 
 /* Build tag shown on the splash so you can confirm you're on the newest build.
    Bump this in lockstep with CACHE in sw.js on every deploy. */
-const BUILD_TAG = "v80";
+const BUILD_TAG = "v81";
 
 const state = { fam: FAMILIES[0], mark: "A", laps: 1, custom: false, mode: "kyc",
                 pickedFam: true, pickedMark: false, committed: false };   // default course type = Z (Trapezoid)
@@ -1077,6 +1077,7 @@ const geo = {
   lineRC: null, linePin: null,   // start-line ends pinged by GPS ("ping the line")
   depthFt: null, depthPos: null, depthFetchAt: 0, depthBusy: false,   // approx NOAA bathymetry (Race View 2)
   laylineOn: false,   // latch so the layline alert beeps once on entry, not every frame
+  rcPinTouched: false, // set when the user re-pings RC, so an async online restore won't overwrite it
 };
 const ROUND_NM = 0.027;   // ~50 m: within this of the target mark => advance to next leg
 const NM_YD = 2025.37;    // yards per nautical mile (matches the Race View distance readout)
@@ -1251,6 +1252,7 @@ function renderResult(){
   drawDiagram(seqArr, "mapDiagram");   // course map lives on the live map page only
   updateGuide();                       // refresh next-mark panel for the new course
   setupStartLine();                    // KYC: pin = CM; Custom: ping both ends
+  restoreRcPin();                      // bring back the remembered RC boat end (local + online)
   setPhase("prestart");                // pre-start view: start tools shown, race/next-mark collapsed
 }
 
@@ -1876,11 +1878,9 @@ function setupStartLine(){
   } else if(!state.custom){
     const cm = ACTIVE_MARKS[ACTIVE_START];                 // CM is the KYC pin end
     if(cm) geo.linePin = { lat: cm.lat, lon: cm.lon };
-    if(!geo.lineRC){ const sp = loadRcPin(); if(sp) geo.lineRC = sp; }   // restore remembered RC boat
     if(pinBtn) pinBtn.style.display = "none";
     if(rcBtn)  rcBtn.style.display = "";
   } else {
-    if(!geo.lineRC){ const sp = loadRcPin(); if(sp) geo.lineRC = sp; }   // restore remembered RC boat
     if(pinBtn) pinBtn.style.display = "";
     if(rcBtn)  rcBtn.style.display = "";
   }
@@ -1904,25 +1904,55 @@ function setPhase(p){
   // the Start-line section is hidden entirely once racing (see updateStartVisibility)
 }
 
-/* The Race Committee (RC) boat position is remembered on this device so a mid-race app restart
-   doesn't lose your start/finish line — it's restored as the default RC end when you set a course. */
+/* The Race Committee (RC) boat position is remembered so a mid-race app restart doesn't lose your
+   start/finish line. It's stored online (Google Sheet backend, per device) as the source of truth,
+   cached in localStorage for instant/offline restore, and re-applied as the default RC end when you
+   set a course. "Clear line" clears the on-screen line but does NOT forget the remembered pin. */
 const RCPIN_KEY = "kyc_rcpin";
-function saveRcPin(p){ try{ localStorage.setItem(RCPIN_KEY, JSON.stringify({ lat:p.lat, lon:p.lon, ts:Date.now() })); }catch(e){} }
-function loadRcPin(){ try{ const o = JSON.parse(localStorage.getItem(RCPIN_KEY) || "null"); return (o && isFinite(o.lat) && isFinite(o.lon)) ? { lat:o.lat, lon:o.lon } : null; }catch(e){ return null; } }
-function clearRcPin(){ try{ localStorage.removeItem(RCPIN_KEY); }catch(e){} }
+function saveRcPinLocal(p){ try{ localStorage.setItem(RCPIN_KEY, JSON.stringify({ lat:p.lat, lon:p.lon, ts:p.ts||Date.now() })); }catch(e){} }
+function loadRcPinLocal(){ try{ const o = JSON.parse(localStorage.getItem(RCPIN_KEY) || "null"); return (o && isFinite(o.lat) && isFinite(o.lon)) ? o : null; }catch(e){ return null; } }
+function saveRcPinOnline(p){
+  const url = CONFIG && CONFIG.analyticsUrl; if(!url) return;
+  const q = url + "?action=save_pin&by=" + encodeURIComponent(deviceId()) +
+            "&lat=" + encodeURIComponent(p.lat) + "&lon=" + encodeURIComponent(p.lon) + "&ts=" + Date.now();
+  fetch(q).catch(()=>{});                              // fire-and-forget; localStorage is the fallback
+}
+function fetchRcPinOnline(cb){
+  const url = CONFIG && CONFIG.analyticsUrl; if(!url){ cb(null); return; }
+  fetch(url + "?action=get_pin&by=" + encodeURIComponent(deviceId()) + "&ts=" + Date.now())
+    .then(r=>r.json())
+    .then(o=>cb(o && isFinite(o.lat) && isFinite(o.lon) ? { lat:+o.lat, lon:+o.lon, ts:+o.ts||0 } : null))
+    .catch(()=>cb(null));
+}
+/* restore the remembered RC end when a course is set (KYC / custom): local cache instantly,
+   then the authoritative online value when it arrives — unless the user has already re-pinged. */
+function restoreRcPin(){
+  if(state.mode === "rc" || geo.lineRC) return;        // RC race sets its own ends; keep an existing one
+  geo.rcPinTouched = false;
+  const sp = loadRcPinLocal();
+  if(sp){ geo.lineRC = { lat:sp.lat, lon:sp.lon }; updateLineInfo(); }
+  fetchRcPinOnline(op=>{
+    if(!op || geo.rcPinTouched) return;                // user pinged since -> don't override
+    saveRcPinLocal(op);
+    geo.lineRC = { lat:op.lat, lon:op.lon };
+    updateLineInfo(); drawBoatOverlay();
+  });
+}
 
 function pingEnd(which){
   if(!geo.lastPos){ setGpsStatus("Need a GPS fix to ping the line", "err"); return; }
   const p = { lat: geo.lastPos.lat, lon: geo.lastPos.lon };
-  if(which === "rc"){ geo.lineRC = p; saveRcPin(p); } else geo.linePin = p;   // remember the RC boat position
+  if(which === "rc"){                                  // remember the RC boat position (local + online)
+    geo.lineRC = p; geo.rcPinTouched = true;
+    saveRcPinLocal(p); saveRcPinOnline(p);
+  } else geo.linePin = p;
   updateLineInfo();
   drawBoatOverlay();
   track("line_ping", { detail: which });
 }
 function clearLine(){
-  geo.lineRC = null; geo.linePin = null;
-  clearRcPin();                     // forget the remembered RC boat too
-  setupStartLine();                 // restores CM as pin for KYC
+  geo.lineRC = null; geo.linePin = null;   // clear the on-screen line; the remembered pin is kept
+  setupStartLine();                        // restores CM as pin for KYC
   drawBoatOverlay();
   track("line_clear");
 }
