@@ -126,6 +126,15 @@ which is bumped on every deploy so phones pull the new build.
   heading table, next-mark guidance, route, laylines, and race timer. W/L laps go leeward → windward
   directly (no start rounding between laps). **Custom Race is unchanged.**
 
+### v82 — Silence + accurate mark rounding
+- **Removed all sound effects.** No more start/mark/finish horns, timer beeps, or the layline beep — the
+  app is now silent. The start countdown keeps its **silent on-screen flash** (and a short vibrate on
+  phones that support it); the layline still shows the **red arrow** visually.
+- **Mark rounding now triggers after you actually round**, not as you approach. Instead of advancing the
+  moment the boat comes within ~50 m of the mark, it arms in that zone, tracks the **closest point of
+  approach**, and advances only once the boat has moved back out ~20 m past it — i.e. you've turned the
+  corner and are heading down the next leg. Manual **Mark / prev / next** still work instantly.
+
 ### v81 — RC pin: online storage + Clear-line keeps it
 - The remembered **RC boat position is now stored online** (Google Sheet backend, per device) as the
   source of truth, with the on-device copy kept as an instant/offline cache. So it survives a reinstall

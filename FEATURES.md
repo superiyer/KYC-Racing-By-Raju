@@ -28,9 +28,9 @@ Created by Raju Venkatraman.
   (green if it's your next mark, red if it's a *different* one) — no more chasing the wrong mark
 - 🚨 **Layline alarm** — the mark arrow turns **red with a beep** the moment you hit the layline (tack now!)
 - 💨 Enter the wind and get **point of sail, laylines, and the fastest route** (with tack/gybe points) drawn on the map
-- 🏁 **Race timer** auto-clocks your **lap and leg splits** at every mark rounding
-- 🔊 **Sound effects** — a triple **ship's-horn** blast at the **start**, **every mark rounding**, and the **finish** (fun on a bluetooth speaker)
-- 📍 **Remembers your RC boat** ping on the device, so an app restart mid-race won't lose your start/finish line
+- 🏁 **Race timer** auto-clocks your **lap and leg splits** — mark roundings are detected *after* you round (at the closest point of approach, on the way out), so the guidance flips when you actually turn
+- 📍 **Remembers your RC boat** ping (on device + online), so an app restart mid-race won't lose your start/finish line
+- 🤫 **Silent** — on-screen cues only (no beeps or horns)
 
 ## Anytime
 - 📱 Runs on iPhone, Android, and iPad (cellular iPad for GPS on the water)

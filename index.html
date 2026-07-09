@@ -1057,7 +1057,7 @@ function validateAll(){
 
 /* Build tag shown on the splash so you can confirm you're on the newest build.
    Bump this in lockstep with CACHE in sw.js on every deploy. */
-const BUILD_TAG = "v81";
+const BUILD_TAG = "v82";
 
 const state = { fam: FAMILIES[0], mark: "A", laps: 1, custom: false, mode: "kyc",
                 pickedFam: true, pickedMark: false, committed: false };   // default course type = Z (Trapezoid)
@@ -1076,10 +1076,11 @@ const geo = {
   raceView2: false,  // Race View (stacked top/bottom big compasses) replaces the map
   lineRC: null, linePin: null,   // start-line ends pinged by GPS ("ping the line")
   depthFt: null, depthPos: null, depthFetchAt: 0, depthBusy: false,   // approx NOAA bathymetry (Race View 2)
-  laylineOn: false,   // latch so the layline alert beeps once on entry, not every frame
   rcPinTouched: false, // set when the user re-pings RC, so an async online restore won't overwrite it
+  roundArmed: false, roundMinNm: Infinity,   // mark-rounding detection: armed in the zone, tracks closest approach
 };
-const ROUND_NM = 0.027;   // ~50 m: within this of the target mark => advance to next leg
+const ROUND_NM = 0.027;      // ~50 m: enter this zone around the target mark to "arm" a rounding
+const ROUND_DEPART_NM = 0.011; // ~20 m: after the closest approach, must move this far back out to confirm the turn
 const NM_YD = 2025.37;    // yards per nautical mile (matches the Race View distance readout)
 const BOW_YD = 50;        // bow-sight: show a mark if the bow would pass within 50 yd of it
 const BOW_CONE = 35;      // bow-sight: ...and the mark is within 35 degrees of dead-ahead
@@ -1186,6 +1187,7 @@ function renderResult(){
   const courseChanged = geo.seqArr.join() !== seqArr.join();
   if(courseChanged){
     geo.seqArr = seqArr; geo.targetIdx = 1; geo.manual = false;
+    geo.roundArmed = false; geo.roundMinNm = Infinity;   // fresh rounding detection for the new course
     geo.view = null; geo.fit = "course";   // reset to the tight course view for the new course
     geo.lineRC = null; geo.linePin = null; // fresh start line for the new course
     raceReset();                           // clear race timing for the new course
@@ -1459,7 +1461,6 @@ function drawBoatOverlay(){ if(geo.raceView2) renderRaceView2(); else renderMap(
    Replaces the map area. Heading-up: the boat is fixed pointing up and the wind/mark
    arrows rotate to where those things are RELATIVE to the boat's current heading. */
 function toggleRaceView2(){
-  ensureAudio();                                   // unlock audio for the layline alert
   setRaceView2(!geo.raceView2);
   track("race_view2", { detail: geo.raceView2 ? "on" : "off" });
 }
@@ -1628,18 +1629,6 @@ function rvNote(d){
   return "";
 }
 
-/* "you're on the layline" cue: a distinctive double high beep + a short buzz. */
-function laylineAlert(){
-  beep("layline"); setTimeout(()=>beep("layline"), 170);
-  if(navigator.vibrate) navigator.vibrate([130,80,130]);
-}
-/* fire the layline alert once when you cross onto the layline, re-arming when you leave it. */
-function laylineWatch(d){
-  const on = !!d.onLayline;
-  if(on && !geo.laylineOn) laylineAlert();
-  geo.laylineOn = on;
-}
-
 /* Approximate water depth at the current position from NOAA NCEI's global bathymetry DEM
    (CORS-enabled, free, no key). This is surveyed sea-floor depth relative to a fixed datum,
    NOT tide-corrected real-time depth, and it's online-only — a rough indicator, never for
@@ -1676,7 +1665,6 @@ function renderRaceView2(){
   const host = $("raceView2"); if(!host) return;
   maybeFetchDepth();
   const d = raceViewData();
-  laylineWatch(d);
   const sm = (lbl)=>`<small>${lbl}</small>`;
   const hdgV = d.hasHdg ? `${hdg3(d.hdg)}${sm("&deg;M")}` : "&mdash;";
   const sogV = d.sog!=null ? `${d.sog.toFixed(1)}${sm("KN")}` : "&mdash;";
@@ -2031,78 +2019,21 @@ function updateStartLive(){
   el.innerHTML = html;
 }
 
-/* ---------- start timer (with gun cues: beep + vibrate + flash) ---------- */
-let timerEnd = null, timerInt = null, lastCueSec = null, audioCtx = null, timerMode = "plain";
+/* ---------- start timer (silent: on-screen flash + optional vibrate, no audio) ---------- */
+let timerEnd = null, timerInt = null, lastCueSec = null, timerMode = "plain";
 function fmtClock(ms){
   const neg = ms < -500; let s = Math.round(Math.abs(ms)/1000);
   return (neg?"+":"") + Math.floor(s/60) + ":" + String(s%60).padStart(2,"0");
 }
-function ensureAudio(){
-  try{ if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){}
-  if(audioCtx && audioCtx.state === "suspended") audioCtx.resume();
-}
-const CUE = {           // frequency (Hz) + duration (s) per signal type
-  gun:    [880, 0.75], long:   [700, 0.95], signal: [700, 0.45],
-  minute: [620, 0.35], tick:   [760, 0.12], layline: [988, 0.28],
-};
-function beep(type){
-  if(!audioCtx) return;
-  try{
-    const [freq, dur] = CUE[type] || CUE.tick;
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain(), t = audioCtx.currentTime;
-    o.type = "sine"; o.frequency.value = freq;
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.45, t+0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(t); o.stop(t+dur+0.02);
-  }catch(e){}
-}
+/* Start-countdown cue — SILENT: a flash on the clock plus a short vibrate on phones that support it.
+   All race sound effects (start/mark/finish horns, the timer beeps, and the layline beep) were
+   removed at the crew's request; nothing in the app plays audio anymore. */
 function cue(type){
-  beep(type);
   if(navigator.vibrate){
     navigator.vibrate(type==="gun" ? [220,90,220,90,320] : type==="long" ? 420 : type==="signal" ? 250 : type==="minute" ? 200 : 70);
   }
   const el = $("tClock");
   if(el){ el.classList.remove("flash","flashGun"); void el.offsetWidth; el.classList.add(type==="gun" ? "flashGun" : "flash"); }
-}
-
-/* ---- Ship's Horn race sound effects (Web Audio, synthesized — no files) ----
-   One enveloped voice; a horn stacks two detuned saws through a low-pass with a little vibrato;
-   a bell is inharmonic partials. Each event's phrase is played THREE times in a row. */
-function rsVoice(t, freq, dur, o){
-  if(!audioCtx) return; o = o || {};
-  const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
-  osc.type = o.type || "sine"; osc.frequency.setValueAtTime(freq, t);
-  const peak = o.gain==null ? 0.4 : o.gain, atk = o.attack==null ? 0.008 : o.attack;
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(peak, t + atk);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  let out = g;
-  if(o.cutoff){ const f = audioCtx.createBiquadFilter(); f.type="lowpass"; f.frequency.value=o.cutoff; g.connect(f); out=f; }
-  if(o.vib){ const lfo=audioCtx.createOscillator(), la=audioCtx.createGain(); lfo.frequency.value=o.vib; la.gain.value=o.vibDepth||3; lfo.connect(la); la.connect(osc.frequency); lfo.start(t); lfo.stop(t+dur+0.05); }
-  osc.connect(g); out.connect(audioCtx.destination);
-  osc.start(t); osc.stop(t + dur + 0.06);
-}
-function rsHorn(t, freq, dur, gain){
-  rsVoice(t, freq, dur, {type:"sawtooth", gain:gain||0.4, attack:0.04, cutoff:1400, vib:5, vibDepth:3});
-  rsVoice(t, freq*1.005, dur, {type:"sawtooth", gain:(gain||0.4)*0.5, attack:0.05, cutoff:1200});
-}
-function rsBell(t, base, dur, gain){
-  const r=[1,2.0,2.76,3.9], a=[1,0.5,0.32,0.2];
-  r.forEach((rr,i)=> rsVoice(t, base*rr, dur*(1-i*0.14), {type:"sine", gain:(gain||0.4)*a[i], attack:0.004}));
-}
-const RACE_SFX = {
-  start(t){  rsHorn(t,220,.28,.5); rsHorn(t+.36,220,.28,.5); rsHorn(t+.78,293.66,.7,.55); return 1.6; },  // A3,A3, D4 rising
-  mark(t){   rsHorn(t,349.23,.42,.5); return .62; },                                                     // single F4 toot
-  finish(t){ rsHorn(t,261.63,.34,.5); rsHorn(t+.30,329.63,.34,.5); rsHorn(t+.60,392,.9,.6); rsBell(t+.7,1046.5,1.4,.35); return 1.95; }  // C4-E4-G4 fanfare + bell
-};
-/* play an event's horn phrase three times back-to-back */
-function raceSound(ev){
-  ensureAudio(); if(!audioCtx) return;
-  const fn = RACE_SFX[ev]; if(!fn) return;
-  let t = audioCtx.currentTime + 0.05;
-  for(let i=0; i<3; i++){ t += fn(t) + 0.12; }
 }
 function fireCues(rem){
   const sec = Math.ceil(rem/1000);
@@ -2142,7 +2073,6 @@ function tickTimer(){
   updateStartLive();
 }
 function startTimer(){
-  ensureAudio();                                          // unlock audio on this user tap (iOS)
   timerMode = "plain";
   const min = Math.max(1, Math.min(30, parseInt($("tMin").value, 10) || 5));
   timerEnd = Date.now() + min*60000; lastCueSec = null;
@@ -2151,7 +2081,6 @@ function startTimer(){
   track("timer_start", { detail: String(min) });
 }
 function startISAF(){
-  ensureAudio();
   timerMode = "isaf"; $("tMin").value = 5;
   timerEnd = Date.now() + 5*60000; lastCueSec = null;
   if(!timerInt) timerInt = setInterval(tickTimer, 200);
@@ -2160,7 +2089,6 @@ function startISAF(){
 }
 function syncTimer(){
   if(timerEnd == null) return;
-  ensureAudio();
   const rem = timerEnd - Date.now();
   timerEnd = Date.now() + Math.round(rem/60000)*60000;    // snap to nearest whole minute
   lastCueSec = null;
@@ -2199,13 +2127,12 @@ function raceArm(t){                                  // auto-start at the gun (
   if(raceStart != null) return;
   raceStart = t; raceFinish = null; splits = []; armTargetIdx = geo.targetIdx;
   retireCountdown(); updateStartVisibility();         // hide the whole Start-line section once racing
-  ensureRaceTick(); updateRaceTimer(); raceSound("start"); track("race_start", { detail:"gun" });
+  ensureRaceTick(); updateRaceTimer(); track("race_start", { detail:"gun" });
 }
 function raceStartManual(){
-  ensureAudio();
   raceStart = Date.now(); raceFinish = null; splits = []; armTargetIdx = geo.targetIdx;
   retireCountdown(); updateStartVisibility();
-  ensureRaceTick(); updateRaceTimer(); raceSound("start"); track("race_start", { detail:"manual" });
+  ensureRaceTick(); updateRaceTimer(); track("race_start", { detail:"manual" });
 }
 function raceReset(){
   closeConfirm();
@@ -2234,13 +2161,13 @@ function confirmNo(){ closeConfirm(); }
 function raceResetTap(){ askConfirm("Reset the race timer? This clears all splits.", "Reset", raceReset, true); }
 /* called whenever the next-mark target moves (auto rounding OR manual prev/next) */
 function onTargetChange(oldIdx, newIdx){
+  geo.roundArmed = false; geo.roundMinNm = Infinity;   // reset rounding detection for the new target leg
   if(raceStart == null || raceFinish != null) return;
   if(newIdx > oldIdx){
     for(let k=oldIdx; k<newIdx; k++){
       const mk = geo.seqArr[k];
       splits.push({ mark: mk, atMs: Date.now()-raceStart, isLap: (mk===ACTIVE_START || mk===ACTIVE_FINISH) });
     }
-    raceSound("mark");                 // horn on every mark rounding
   } else if(newIdx < oldIdx){
     for(let k=oldIdx; k>newIdx && splits.length; k--) splits.pop();
   }
@@ -2271,7 +2198,6 @@ function doFinish(t){
   splits.push({ mark: ACTIVE_FINISH, atMs: t-raceStart, isLap:true, isFinish:true });
   if(raceInt){ clearInterval(raceInt); raceInt = null; }                // freeze the clock
   updateRaceTimer();
-  raceSound("finish"); if(navigator.vibrate) navigator.vibrate([420,120,420]);
   track("race_finish", { detail: fmtRace(t-raceStart) });
 }
 function updateRaceTimer(){
@@ -2495,11 +2421,20 @@ function updateGuide(){
   $("guide").style.display = seq.length ? "block" : "none";
   if(!seq.length) return;
 
-  // auto-detect rounding (unless the user has taken manual control)
+  // auto-detect rounding (unless the user has taken manual control). We DON'T advance the moment the
+  // boat nears the mark — that flips the guidance before the turn. Instead we detect the actual
+  // rounding: arm once inside the mark zone, remember the closest point of approach, then advance only
+  // after the boat has clearly moved back away from that closest point (i.e. it has turned the corner
+  // and is heading down the next leg). This fires at the mark, on the way out, not on the way in.
   if(geo.lastPos && !geo.manual && geo.targetIdx < seq.length-1){
     const tgt = seq[geo.targetIdx];
-    if(distNm(geo.lastPos, ACTIVE_MARKS[tgt]) < ROUND_NM){
-      const old = geo.targetIdx; geo.targetIdx++; onTargetChange(old, geo.targetIdx);
+    const dnm = distNm(geo.lastPos, ACTIVE_MARKS[tgt]);
+    if(dnm < ROUND_NM){                                  // in the zone -> arm, and track the nearest approach
+      geo.roundArmed = true;
+      if(dnm < geo.roundMinNm) geo.roundMinNm = dnm;
+    }
+    if(geo.roundArmed && dnm > geo.roundMinNm + ROUND_DEPART_NM){   // past the mark, now departing -> rounded
+      const old = geo.targetIdx; geo.targetIdx++; onTargetChange(old, geo.targetIdx);   // also resets round state
     }
   }
   // auto-finish when reaching the last mark
