@@ -126,6 +126,13 @@ which is bumped on every deploy so phones pull the new build.
   heading table, next-mark guidance, route, laylines, and race timer. W/L laps go leeward → windward
   directly (no start rounding between laps). **Custom Race is unchanged.**
 
+### v83 — Next-mark preview on the Mark Heading compass
+- As you close on the current mark (**within 100 yd**), the Mark Heading compass now previews the **next
+  mark**: a hollow **cyan arrow** down the next leg with that mark's letter, plus a **"Then _X_ · turn NN°
+  STBD/PORT"** strip below. The bold current-mark arrow (yellow/green/red) is unchanged. Both the arrow
+  and the turn are shown relative to your heading, so the arrow's lean = the turn you'll make.
+- It appears only inside 100 yd and clears once you round, so it never clutters the approach from afar.
+
 ### v82 — Silence + accurate mark rounding
 - **Removed all sound effects.** No more start/mark/finish horns, timer beeps, or the layline beep — the
   app is now silent. The start countdown keeps its **silent on-screen flash** (and a short vibrate on

@@ -429,6 +429,12 @@
   .rv2Steer{text-align:center; padding:8px 10px; font-size:clamp(18px,6vw,30px);
        font-weight:900; letter-spacing:.02em; border-top:2px solid #25324a;}
   .rv2Steer.on{color:#34d36b;} .rv2Steer.turn{color:#ffd54a;}
+  /* next-leg preview strip (Option D) — shows within 100 yd of the current mark */
+  .rv2Next{display:flex; align-items:center; justify-content:center; gap:12px;
+       background:#0b1a2e; border-top:2px solid #25324a; padding:9px 12px;}
+  .rv2Next .l{font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#9fb3d0;}
+  .rv2Next .m{font-size:clamp(22px,7vw,30px); font-weight:900; color:#38bdf8; line-height:1;}
+  .rv2Next .t{font-size:clamp(15px,4.6vw,20px); font-weight:800; color:#ffd54a; font-variant-numeric:tabular-nums;}
   .rv2Note{text-align:center; padding:6px 10px 9px; color:#ffd54a; font-size:12.5px; font-weight:700;}
   .boatlbl{font:700 11px -apple-system,"Segoe UI",sans-serif;}
   tr.activeLeg td{background:#eaf2ff;}
@@ -1057,7 +1063,7 @@ function validateAll(){
 
 /* Build tag shown on the splash so you can confirm you're on the newest build.
    Bump this in lockstep with CACHE in sw.js on every deploy. */
-const BUILD_TAG = "v82";
+const BUILD_TAG = "v83";
 
 const state = { fam: FAMILIES[0], mark: "A", laps: 1, custom: false, mode: "kyc",
                 pickedFam: true, pickedMark: false, committed: false };   // default course type = Z (Trapezoid)
@@ -1085,6 +1091,7 @@ const NM_YD = 2025.37;    // yards per nautical mile (matches the Race View dist
 const BOW_YD = 50;        // bow-sight: show a mark if the bow would pass within 50 yd of it
 const BOW_CONE = 35;      // bow-sight: ...and the mark is within 35 degrees of dead-ahead
 const LAY_TOL = 6;        // layline alarm: half-width (deg) of the "on the layline" band
+const NEXT_SHOW_NM = 100 / NM_YD;   // reveal the next-mark ghost arrow + strip within 100 yd of the current mark
 
 const $ = (id)=>document.getElementById(id);
 
@@ -1500,6 +1507,17 @@ function rvWindArrow(rot, o){
     `<path d="M50,${tipY} L${(50-w).toFixed(1)},${baseY} L${(50+w).toFixed(1)},${baseY} Z" fill="${c}"/></g>`;
 }
 
+/* hollow "ghost" arrow — a lighter, outline arrow used for the next-leg direction so it reads as
+   secondary to the solid current-mark arrow. rot = bearing relative to the bow. */
+function rvGhostArrow(rot, color, o){
+  o = o || {};
+  const tipR=o.tipR||40, headLen=o.headLen||12, w=o.w||6, sw=o.sw||2.6;
+  const tipY=50-tipR, baseY=50-(tipR-headLen);
+  return `<g transform="rotate(${rot.toFixed(1)} 50 50)">`+
+    `<line x1="50" y1="50" x2="50" y2="${baseY.toFixed(1)}" stroke="${color}" stroke-width="${sw}" stroke-linecap="round"/>`+
+    `<path d="M50,${tipY.toFixed(1)} L${(50-w).toFixed(1)},${baseY.toFixed(1)} L${(50+w).toFixed(1)},${baseY.toFixed(1)} Z" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round"/></g>`;
+}
+
 /* magnetic compass rose for the Race View circles. rot = degrees the rose is turned so a
    given heading sits at the top: pass the boat heading (heading-up, left) or 0 (north-up,
    right). N is red; NE/E/SE/SW/W/NW lettered; the 8 in-between points are short ticks. */
@@ -1549,6 +1567,19 @@ function raceViewData(){
   const steer = (hasHdg && mrkBrg != null) ? angleDiff(effHdg, mrkBrg) : null;   // + = mark to starboard
   const onCourse = steer != null && Math.abs(steer) <= 5;
 
+  // the mark AFTER the current target — its next-leg heading, and the turn you'll make at the
+  // rounding — revealed only once you're closing on the current mark (within ~100 yd).
+  let nextLbl=null, nextBrg=null, nextTurn=null, nextShow=false;
+  if(seq.length && geo.targetIdx+1 < seq.length){
+    const curM = seq[geo.targetIdx], nxtM = seq[geo.targetIdx+1];
+    if(ACTIVE_MARKS[curM] && ACTIVE_MARKS[nxtM]){
+      nextLbl = nxtM;
+      nextBrg = norm(bearingMag(ACTIVE_MARKS[curM], ACTIVE_MARKS[nxtM]));    // heading of the next leg (mag)
+      if(hasHdg) nextTurn = angleDiff(effHdg, nextBrg);                      // + = turn to starboard
+      nextShow = hasGps && distnm != null && distnm <= NEXT_SHOW_NM;
+    }
+  }
+
   // bow-sight: which mark is the boat actually pointing at? Scan every known mark; keep the
   // nearest one that is ahead (within the forward cone) whose position the bow would pass
   // within BOW_YD yards of. cross-track = dist*sin(offset), so the accuracy sharpens with range.
@@ -1575,7 +1606,8 @@ function raceViewData(){
     onLayline = upwind && Math.abs(Math.abs(steer) - tackAngle) <= LAY_TOL;
   }
 
-  return { norm, hasGps, hasHdg, hdg, effHdg, sog, windFrom, markLbl, mrkBrg, distnm, steer, onCourse, bowMark, onLayline };
+  return { norm, hasGps, hasHdg, hdg, effHdg, sog, windFrom, markLbl, mrkBrg, distnm, steer, onCourse, bowMark, onLayline,
+           nextLbl, nextBrg, nextTurn, nextShow };
 }
 
 /* heading-up boat compass: boat fixed pointing up, the magnetic rose rotates so your heading
@@ -1606,6 +1638,15 @@ function rvMarkSvg(d, arrowOpts, windOpts){
     `<circle cx="50" cy="50" r="46" fill="none" stroke="#2a3a55" stroke-width="2"/>`+
     rvCompass(d.effHdg);
   if(windOpts && d.windFrom != null) g += rvWindArrow(d.norm(d.windFrom - d.effHdg), windOpts);
+  // next-leg preview: a hollow cyan arrow to the mark AFTER this one, shown as you close on the
+  // current mark (within 100 yd). Its letter rides on the shaft.
+  if(d.nextShow && d.nextBrg != null){
+    const nrot = d.norm(d.nextBrg - d.effHdg);
+    g += rvGhostArrow(nrot, "#38bdf8");
+    const bx = 50 + 30*Math.sin(nrot*Math.PI/180), by = 50 - 30*Math.cos(nrot*Math.PI/180);
+    g += `<circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="6.2" fill="#0b1220" stroke="#38bdf8" stroke-width="1.5"/>`+
+         `<text x="${bx.toFixed(1)}" y="${by.toFixed(1)}" font-size="7.6" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="#38bdf8">${d.nextLbl}</text>`;
+  }
   // arrow colour: green on course, RED when you're on the layline (tack now), else yellow
   if(d.hasGps && d.mrkBrg != null){
     const col = d.onCourse ? "#34d36b" : (d.onLayline ? "#ff3b30" : "#ffd54a");
@@ -1627,6 +1668,18 @@ function rvNote(d){
   if(!d.hasGps) return "Start GPS (top-right) to point to the mark and read distance.";
   if(!d.hasHdg) return "Move a little to get a heading &mdash; the compasses show north-up until then.";
   return "";
+}
+
+/* "then H — turn 90 STBD" preview strip for Race View (shown near the current mark). */
+function rvNextStrip(d){
+  if(!d.nextShow) return "";
+  let turn = "";
+  if(d.nextTurn != null){
+    const a = Math.abs(Math.round(d.nextTurn));
+    turn = a <= 4 ? `<span class="t">straight on</span>`
+         : `<span class="t">${d.nextTurn > 0 ? "&#8631;" : "&#8630;"} ${a}&deg; ${d.nextTurn > 0 ? "STBD" : "PORT"}</span>`;
+  }
+  return `<div class="rv2Next"><span class="l">Then</span><span class="m">${d.nextLbl}</span>${turn}</div>`;
 }
 
 /* Approximate water depth at the current position from NOAA NCEI's global bathymetry DEM
@@ -1693,6 +1746,7 @@ function renderRaceView2(){
       cell("br","Distance",ydV)+
       `<div class="rv2Gfx">${rvMarkSvg(d, {tipR:43, headLen:14, w:5, sw:3.5}, {sw:0.9, w:1.9, dash:"2.6 2"})}</div>`+
     `</div>`+
+    rvNextStrip(d) +
     rvSteerHtml(d, "rv2Steer") +
     (note ? `<div class="rv2Note">${note}</div>` : "");
   updateZoomBtn();

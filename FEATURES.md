@@ -30,6 +30,7 @@ Created by Raju Venkatraman.
 - 💨 Enter the wind and get **point of sail, laylines, and the fastest route** (with tack/gybe points) drawn on the map
 - 🏁 **Race timer** auto-clocks your **lap and leg splits** — mark roundings are detected *after* you round (at the closest point of approach, on the way out), so the guidance flips when you actually turn
 - 📍 **Remembers your RC boat** ping (on device + online), so an app restart mid-race won't lose your start/finish line
+- 🔜 **Next-mark preview** — within 100 yd of the current mark, a cyan arrow + "Then _X_ · turn NN°" shows where you'll head after rounding
 - 🤫 **Silent** — on-screen cues only (no beeps or horns)
 
 ## Anytime
