@@ -126,6 +126,13 @@ which is bumped on every deploy so phones pull the new build.
   heading table, next-mark guidance, route, laylines, and race timer. W/L laps go leeward → windward
   directly (no start rounding between laps). **Custom Race is unchanged.**
 
+### v84 — Time-to-mark under the bow-sight letter
+- When the **bow-sight letter** appears in the boat compass (you're pointed at a mark), a **MM:SS**
+  time-to-reach badge now shows **right under it**, in the same colour. It uses your **closing speed**
+  (SOG projected onto the bearing to the mark), so it stays honest when you're slightly off the bow, and
+  it **hides when you're not actually closing** (drifting / too slow) rather than showing a bogus time.
+- Note: like all GPS-derived numbers, the seconds are only as steady as your GPS fix.
+
 ### v83 — Next-mark preview on the Mark Heading compass
 - As you close on the current mark (**within 100 yd**), the Mark Heading compass now previews the **next
   mark**: a hollow **cyan arrow** down the next leg with that mark's letter, plus a **"Then _X_ · turn NN°

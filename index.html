@@ -1063,7 +1063,7 @@ function validateAll(){
 
 /* Build tag shown on the splash so you can confirm you're on the newest build.
    Bump this in lockstep with CACHE in sw.js on every deploy. */
-const BUILD_TAG = "v83";
+const BUILD_TAG = "v84";
 
 const state = { fam: FAMILIES[0], mark: "A", laps: 1, custom: false, mode: "kyc",
                 pickedFam: true, pickedMark: false, committed: false };   // default course type = Z (Trapezoid)
@@ -1583,7 +1583,7 @@ function raceViewData(){
   // bow-sight: which mark is the boat actually pointing at? Scan every known mark; keep the
   // nearest one that is ahead (within the forward cone) whose position the bow would pass
   // within BOW_YD yards of. cross-track = dist*sin(offset), so the accuracy sharpens with range.
-  let bowMark = null;
+  let bowMark = null, bowNm = null, bowOff = null;
   if(hasGps && hasHdg && ACTIVE_MARKS){
     let best = Infinity;
     for(const m of Object.keys(ACTIVE_MARKS)){
@@ -1593,7 +1593,18 @@ function raceViewData(){
       if(Math.abs(off) > BOW_CONE) continue;                        // must be ahead of the bow
       const crossYd = Math.abs(dnm * Math.sin(off*Math.PI/180)) * NM_YD;
       if(crossYd > BOW_YD) continue;                                // must pass within 50 yd
-      if(dnm < best){ best = dnm; bowMark = m; }                    // nearest qualifying mark
+      if(dnm < best){ best = dnm; bowMark = m; bowNm = dnm; bowOff = off; }   // nearest qualifying mark
+    }
+  }
+  // ETA to the bow-sighted mark, using CLOSING speed (SOG projected onto the bearing to the mark),
+  // so a few degrees off the bow reads a bit longer, not a false "arriving now". Hidden when we're
+  // not actually closing (drifting / too slow) or the estimate is unreasonably long.
+  let bowEtaSec = null;
+  if(bowMark && bowNm != null && sog != null){
+    const vmg = sog * Math.cos(bowOff * Math.PI/180);              // knots of closing speed
+    if(vmg > 0.2){
+      const sec = (bowNm / vmg) * 3600;
+      if(sec > 0 && sec < 3600) bowEtaSec = sec;                   // show up to 59:59
     }
   }
 
@@ -1606,7 +1617,7 @@ function raceViewData(){
     onLayline = upwind && Math.abs(Math.abs(steer) - tackAngle) <= LAY_TOL;
   }
 
-  return { norm, hasGps, hasHdg, hdg, effHdg, sog, windFrom, markLbl, mrkBrg, distnm, steer, onCourse, bowMark, onLayline,
+  return { norm, hasGps, hasHdg, hdg, effHdg, sog, windFrom, markLbl, mrkBrg, distnm, steer, onCourse, bowMark, bowEtaSec, onLayline,
            nextLbl, nextBrg, nextTurn, nextShow };
 }
 
@@ -1625,6 +1636,13 @@ function rvBoatSvg(d){
     const col = d.markLbl == null ? "#ffd54a" : (d.bowMark === d.markLbl ? "#34d36b" : "#ff5a4e");
     g += `<circle cx="50" cy="50" r="8.6" fill="#0b1220" stroke="${col}" stroke-width="1.9"/>`+
          `<text x="50" y="50" font-size="11" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="${col}">${d.bowMark}</text>`;
+    // time-to-mark (MM:SS) in a small pill directly under the letter, same colour as the letter
+    if(d.bowEtaSec != null){
+      const tot = Math.round(d.bowEtaSec), mm = Math.floor(tot/60), ss = tot%60;
+      const t = mm + ":" + String(ss).padStart(2,"0");
+      g += `<rect x="38" y="60.5" width="24" height="10" rx="3" fill="#0b1220" stroke="${col}" stroke-width="0.8"/>`+
+           `<text x="50" y="65.7" font-size="6.4" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="${col}" font-variant-numeric="tabular-nums">${t}</text>`;
+    }
   }
   return g + `</svg>`;
 }

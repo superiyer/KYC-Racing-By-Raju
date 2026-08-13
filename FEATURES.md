@@ -25,7 +25,8 @@ Created by Raju Venkatraman.
 - 🧭 **Live map** with your boat, heading, speed and breadcrumb track
 - ➡️ **Next-mark guidance** — bearing, distance, and which way to steer
 - 🎯 **Bow-sight** — the boat compass shows a circled **mark letter** when your bow is lined up on a mark
-  (green if it's your next mark, red if it's a *different* one) — no more chasing the wrong mark
+  (green if it's your next mark, red if it's a *different* one) — no more chasing the wrong mark — with a
+  **MM:SS time-to-reach** right under it based on your closing speed
 - 🚨 **Layline alarm** — the mark arrow turns **red with a beep** the moment you hit the layline (tack now!)
 - 💨 Enter the wind and get **point of sail, laylines, and the fastest route** (with tack/gybe points) drawn on the map
 - 🏁 **Race timer** auto-clocks your **lap and leg splits** — mark roundings are detected *after* you round (at the closest point of approach, on the way out), so the guidance flips when you actually turn
